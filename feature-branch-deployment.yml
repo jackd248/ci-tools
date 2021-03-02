@@ -58,8 +58,8 @@ variables:
         #
         # Install SSH key
         #
-        - chmod +x deployment/install-ssh.sh
-        - deployment/install-ssh.sh ${SSH_KEY} ${SSH_HOST_STAGE} ${SSH_HOST_PROD}
+        - chmod +x ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/install-ssh.sh
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/install-ssh.sh ${SSH_KEY} ${SSH_HOST_STAGE} ${SSH_HOST_PROD}
         # Add URL to hosts
         - echo "${SSH_HOST_STAGE} ${HOST_STAGE}" >> /etc/hosts
     environment:
