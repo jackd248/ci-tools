@@ -30,6 +30,13 @@ variables:
         - /^feature-.*$/
     before_script:
         #
+        # Install CI Tools
+        #
+        - composer install -d ${PATH_TO_DEPLOYMENT} > /dev/nulll
+        - composer show xima/ci-tools -d ${PATH_TO_DEPLOYMENT}
+        - cd ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/
+        - pip3 install -r requirements.txt > /dev/nulll
+        #
         # Check variables
         #
         - chmod +x ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh
@@ -48,13 +55,6 @@ variables:
         - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_PROJECT_NAME ${FBD_PROJECT_NAME} "(e.g. DWI)"
         - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_SYNC_CONFIG ${FBD_SYNC_CONFIG} "(e.g. ${CI_PROJECT_DIR}/deployment/db-sync-tool/sync-prod-to-feature.json.j2)"
         - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh MS_TEAMS_WEBHOOK ${MS_TEAMS_WEBHOOK} "(e.g. https://outlook.office.com/webhook/...)"
-        #
-        # Install CI Tools
-        #
-        - composer install -d ${PATH_TO_DEPLOYMENT} > /dev/nulll
-        - composer show xima/ci-tools -d ${PATH_TO_DEPLOYMENT}
-        - cd ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/
-        - pip3 install -r requirements.txt > /dev/nulll
         #
         # Install SSH key
         #
