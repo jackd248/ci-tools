@@ -30,6 +30,25 @@ variables:
         - /^feature-.*$/
     before_script:
         #
+        # Check variables
+        #
+        - chmod +x ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh HOST_STAGE "(e.g. stage.project.de)" ${HOST_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh APP_URL_STAGE "(e.g. https://${HOST_STAGE})" ${APP_URL_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh SSH_HOST_STAGE "(e.g. 127.0.0.1)" ${SSH_HOST_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh SSH_USER_STAGE "(e.g. xima)" ${SSH_USER_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh SSH_KEY "global ssh key" ${SSH_KEY}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh DB_USER_STAGE "(e.g. db_user)" ${DB_USER_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh DB_HOST_STAGE "(e.g. localhost)" ${DB_HOST_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh DB_PASSWORD_STAGE "database password" ${DB_PASSWORD_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh PATH_PROJECT_DIR_STAGE "(e.g. /var/www/html/${HOST_STAGE}/)" ${PATH_PROJECT_DIR_STAGE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh PATH_TO_DEPLOYMENT "- path where web-ci-tools are installed (e.g. ${CI_PROJECT_DIR}/htdocs/)" ${PATH_TO_DEPLOYMENT}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh ENVIRONMENT_URL "(for TYPO3 e.g. $APP_URL_STAGE/$CI_COMMIT_REF_NAME/releases/current/web/)" ${ENVIRONMENT_URL}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_TYPE "(e.g. TYPO3)" ${FBD_TYPE}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_PROJECT_NAME "(e.g. DWI)" ${FBD_PROJECT_NAME}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_SYNC_CONFIG "(e.g. ${CI_PROJECT_DIR}/deployment/db-sync-tool/sync-prod-to-feature.json.j2)" ${FBD_SYNC_CONFIG}
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh MS_TEAMS_WEBHOOK "(e.g. https://outlook.office.com/webhook/...)" ${MS_TEAMS_WEBHOOK}
+        #
         # Install CI Tools
         #
         - composer install -d ${PATH_TO_DEPLOYMENT} > /dev/nulll
@@ -37,29 +56,10 @@ variables:
         - cd ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/
         - pip3 install -r requirements.txt > /dev/nulll
         #
-        # Check variables
-        #
-        - chmod +x ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh HOST_STAGE ${HOST_STAGE} "(e.g. stage.project.de)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh APP_URL_STAGE ${APP_URL_STAGE} "(e.g. https://${HOST_STAGE})"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh SSH_HOST_STAGE ${SSH_HOST_STAGE} "(e.g. 127.0.0.1)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh SSH_USER_STAGE ${SSH_USER_STAGE} "(e.g. xima)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh SSH_KEY ${SSH_KEY}
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh DB_USER_STAGE ${DB_USER_STAGE} "(e.g. db_user)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh DB_HOST_STAGE ${DB_HOST_STAGE} "(e.g. localhost)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh DB_PASSWORD_STAGE ${DB_PASSWORD_STAGE}
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh PATH_PROJECT_DIR_STAGE ${PATH_PROJECT_DIR_STAGE} "(e.g. /var/www/html/${HOST_STAGE}/)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh PATH_TO_DEPLOYMENT ${PATH_TO_DEPLOYMENT} "- path where web-ci-tools are installed (e.g. ${CI_PROJECT_DIR}/htdocs/)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh ENVIRONMENT_URL ${ENVIRONMENT_URL} "(for TYPO3 e.g. $APP_URL_STAGE/$CI_COMMIT_REF_NAME/releases/current/web/)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_TYPE ${FBD_TYPE} "(e.g. TYPO3)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_PROJECT_NAME ${FBD_PROJECT_NAME} "(e.g. DWI)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh FBD_SYNC_CONFIG ${FBD_SYNC_CONFIG} "(e.g. ${CI_PROJECT_DIR}/deployment/db-sync-tool/sync-prod-to-feature.json.j2)"
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/check-variable.sh MS_TEAMS_WEBHOOK ${MS_TEAMS_WEBHOOK} "(e.g. https://outlook.office.com/webhook/...)"
-        #
         # Install SSH key
         #
-        - chmod +x ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/install-ssh.sh
-        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/install-ssh.sh ${SSH_KEY} ${SSH_HOST_STAGE} ${SSH_HOST_PROD}
+        - chmod +x ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/deployment/install-ssh.sh
+        - ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/deployment/deployment/install-ssh.sh ${SSH_KEY} ${SSH_HOST_STAGE} ${SSH_HOST_PROD}
         # Add URL to hosts
         - echo "${SSH_HOST_STAGE} ${HOST_STAGE}" >> /etc/hosts
     environment:
@@ -170,7 +170,7 @@ deploy:feature:stop:
                   --base-url ${APP_URL_STAGE} \
                   --sync-config ${FBD_SYNC_CONFIG} \
                   --sync-only \
-                 --sync-force ${FBD_SYNC_FORCE} \
+                  --sync-force ${FBD_SYNC_FORCE} \
                   --sync-files
     allow_failure: false
 
