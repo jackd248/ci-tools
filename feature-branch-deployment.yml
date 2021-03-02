@@ -1,0 +1,192 @@
+#-----------------------------------------------------------------------------------------------------------------------
+# CONFIGURATION
+#-----------------------------------------------------------------------------------------------------------------------
+variables:
+    HOST_STAGE: ""
+    APP_URL_STAGE: ""
+    SSH_HOST_STAGE: ""
+    SSH_USER_STAGE: ""
+    DB_USER_STAGE: ""
+    DB_HOST_STAGE: "localhost"
+    PATH_PROJECT_DIR_STAGE: ""
+
+    PATH_TO_DEPLOYMENT: ""
+    ENVIRONMENT_URL: ""
+    FBD_TYPE: ""
+    FBD_PROJECT_NAME: ""
+    FBD_SYNC_CONFIG: ""
+    FBD_SYNC_FORCE: 0
+
+    PATH_TO_SSH_KEY: "/root/.ssh/id_rsa"
+
+#
+# Templates
+#
+.feature_template:
+    only:
+        - stage
+        - test
+        - /^release-(.*)/
+        - /^feature-.*$/
+    before_script:
+        #
+        # Check variables
+        #
+        - chmod +x deployment/check-variable.sh
+        - deployment/check-variable.sh HOST_STAGE ${HOST_STAGE} "(e.g. stage.project.de)"
+        - deployment/check-variable.sh APP_URL_STAGE ${APP_URL_STAGE} "(e.g. https://${HOST_STAGE})"
+        - deployment/check-variable.sh SSH_HOST_STAGE ${SSH_HOST_STAGE} "(e.g. 127.0.0.1)"
+        - deployment/check-variable.sh SSH_USER_STAGE ${SSH_USER_STAGE} "(e.g. xima)"
+        - deployment/check-variable.sh SSH_KEY ${SSH_KEY}
+        - deployment/check-variable.sh DB_USER_STAGE ${DB_USER_STAGE} "(e.g. db_user)"
+        - deployment/check-variable.sh DB_HOST_STAGE ${DB_HOST_STAGE} "(e.g. localhost)"
+        - deployment/check-variable.sh DB_PASSWORD_STAGE ${DB_PASSWORD_STAGE}
+        - deployment/check-variable.sh PATH_PROJECT_DIR_STAGE ${PATH_PROJECT_DIR_STAGE} "(e.g. /var/www/html/${HOST_STAGE}/)"
+        - deployment/check-variable.sh PATH_TO_DEPLOYMENT ${PATH_TO_DEPLOYMENT} "- path where web-ci-tools are installed (e.g. ${CI_PROJECT_DIR}/htdocs/)"
+        - deployment/check-variable.sh ENVIRONMENT_URL ${ENVIRONMENT_URL} "(for TYPO3 e.g. $APP_URL_STAGE/$CI_COMMIT_REF_NAME/releases/current/web/)"
+        - deployment/check-variable.sh FBD_TYPE ${FBD_TYPE} "(e.g. TYPO3)"
+        - deployment/check-variable.sh FBD_PROJECT_NAME ${FBD_PROJECT_NAME} "(e.g. DWI)"
+        - deployment/check-variable.sh FBD_SYNC_CONFIG ${FBD_SYNC_CONFIG} "(e.g. ${CI_PROJECT_DIR}/deployment/db-sync-tool/sync-prod-to-feature.json.j2)"
+        - deployment/check-variable.sh MS_TEAMS_WEBHOOK ${MS_TEAMS_WEBHOOK} "(e.g. https://outlook.office.com/webhook/...)"
+        #
+        # Install CI Tools
+        #
+        - composer install -d ${PATH_TO_DEPLOYMENT} > /dev/nulll
+        - composer show xima/ci-tools -d ${PATH_TO_DEPLOYMENT}
+        - cd ${PATH_TO_DEPLOYMENT}/vendor/xima/ci-tools/
+        - pip3 install -r requirements.txt > /dev/nulll
+        #
+        # Install SSH key
+        #
+        - chmod +x deployment/install-ssh.sh
+        - deployment/install-ssh.sh ${SSH_KEY} ${SSH_HOST_STAGE} ${SSH_HOST_PROD}
+        # Add URL to hosts
+        - echo "${SSH_HOST_STAGE} ${HOST_STAGE}" >> /etc/hosts
+    environment:
+        name: $CI_COMMIT_REF_NAME
+        url: $ENVIRONMENT_URL
+
+#-----------------------------------------------------------------------------------------------------------------------
+# STAGES
+#-----------------------------------------------------------------------------------------------------------------------
+stages:
+    - deploy
+    - sync
+
+#-----------------------------------------------------------------------------------------------------------------------
+# JOBS
+#-----------------------------------------------------------------------------------------------------------------------
+
+#
+# Deployment Job Feature Branch
+#
+deploy:feature:
+    stage: deploy
+    except:
+        - schedules
+    extends:
+        - .feature_template
+    script:
+        # Feature Branch Deployment
+        - >
+            python3 feature_branch_deployment.py \
+                  --ssh-host ${SSH_HOST_STAGE} \
+                  --ssh-user ${SSH_USER_STAGE} \
+                  --ssh-key ${PATH_TO_SSH_KEY} \
+                  --type ${FBD_TYPE} \
+                  --name $CI_COMMIT_REF_NAME \
+                  --project-name ${FBD_PROJECT_NAME} \
+                  --db-user ${DB_USER_STAGE} \
+                  --db-password ${DB_PASSWORD_STAGE} \
+                  --target-path ${PATH_PROJECT_DIR_STAGE} \
+                  --base-path ${CI_PROJECT_DIR} \
+                  --ms-teams-webhook ${MS_TEAMS_WEBHOOK} \
+                  --base-url ${APP_URL_STAGE} \
+                  --sync-config ${FBD_SYNC_CONFIG} \
+                  --sync-force ${FBD_SYNC_FORCE} \
+                  --umask 0002
+    environment:
+        on_stop: deploy:feature:stop
+        auto_stop_in: 3 months
+    allow_failure: false
+
+#
+# Stop Job Feature Branch
+#
+deploy:feature:stop:
+    stage: deploy
+    only:
+        - stage
+        - /^release-(.*)/
+        - /^feature-.*$/
+    except:
+        - schedules
+    extends:
+        - .feature_template
+    dependencies: [ ]
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - >
+            python3 feature_branch_deployment.py \
+                  --ssh-host ${SSH_HOST_STAGE} \
+                  --ssh-user ${SSH_USER_STAGE} \
+                  --ssh-key ${PATH_TO_SSH_KEY} \
+                  --type ${FBD_TYPE} \
+                  --name $CI_COMMIT_REF_NAME \
+                  --project-name ${FBD_PROJECT_NAME} \
+                  --db-user ${DB_USER_STAGE} \
+                  --db-password ${DB_PASSWORD_STAGE} \
+                  --db-host ${DB_HOST_STAGE} \
+                  --target-path ${PATH_PROJECT_DIR_STAGE} \
+                  --base-path ${CI_PROJECT_DIR} \
+                  --delete
+    when: manual
+    environment:
+        action: stop
+
+#
+# Sync Job  Feature Branch
+#
+.feature-sync:
+    stage: sync
+    extends:
+        - .feature_template
+    script:
+        - >
+            python3 feature_branch_deployment.py \
+                  --ssh-host ${SSH_HOST_STAGE} \
+                  --ssh-user ${SSH_USER_STAGE} \
+                  --ssh-key ${PATH_TO_SSH_KEY} \
+                  --type ${FBD_TYPE} \
+                  --name $CI_COMMIT_REF_NAME \
+                  --project-name ${FBD_PROJECT_NAME} \
+                  --db-user ${DB_USER_STAGE} \
+                  --db-password ${DB_PASSWORD_STAGE} \
+                  --db-host ${DB_HOST_STAGE} \
+                  --target-path ${PATH_PROJECT_DIR_STAGE} \
+                  --base-path ${CI_PROJECT_DIR} \
+                  --ms-teams-webhook ${MS_TEAMS_BAU_DB} \
+                  --base-url ${APP_URL_STAGE} \
+                  --sync-config ${FBD_SYNC_CONFIG} \
+                  --sync-only \
+                 --sync-force ${FBD_SYNC_FORCE} \
+                  --sync-files
+    allow_failure: false
+
+#
+# Manual sync job feature branch
+#
+sync:feature:
+    extends: .feature-sync
+    except:
+        - schedules
+    when: manual
+
+#
+# Scheduled sync job feature branch
+#
+sync:scheduled:
+    extends: .feature-sync
+    only:
+        - schedules
